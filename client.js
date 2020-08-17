@@ -37,10 +37,31 @@ const getFormatUsers = (users) => {
     }, [])
 }
 
-const getFeedbackByProductViewData = async(product, actualize = true) => {
+const getFormatFeedBacks = (feedBacks, users) => {
+  const copyFeedBacks = [...feedBacks]
+  copyFeedBacks
+    .sort( (a, b) => a.date - b.date)
+    .forEach( (feedBack) => {
+      feedBack.date = getDate(feedBack.date)
+      const { email, name } = users.find( user => user.id === feedBack.userId)
+      feedBack.user = `${name} (${email})`
+    })
+
+  return copyFeedBacks
+}
+
+const getActualizeFeedBacks = (feedBacks, users) => {
+  return users.map( user => feedBacks
+    .filter( (feedBack) => feedBack.userId === user.id)
+    .reduce( (acc, feedBack) => acc.date > feedBack.date ? acc : feedBack)
+  )
+}
+
+const getFeedbackByProductViewData = async(product, actualize = false) => {
     try {
       const getUserResults = []
       const copyFeedBacks = []
+      const result = {}
 
       const res =  await axios({
         url: '/feedback',
@@ -64,20 +85,14 @@ const getFeedbackByProductViewData = async(product, actualize = true) => {
       const usersR = await Promise.all(getUserResults) // array users
       const users = getFormatUsers(usersR)
 
-      copyFeedBacks
-        .sort( (a, b) => a.date - b.date)
-        .forEach( (feedBack) => {
-          feedBack.date = getDate(feedBack.date)
-          const { email, name } = users.find( user => user.id === feedBack.userId)
-          feedBack.user = `${name} (${email})`
-        })
-
-      console.log('RESULT: ', copyFeedBacks)
-      console.log('RES.DATA: ', res.data)
-
-      return {
-        feedback: copyFeedBacks
+      if(actualize) {
+        const actualizeFeedBacks  = getActualizeFeedBacks(copyFeedBacks, users)
+        result.feedback = getFormatFeedBacks(actualizeFeedBacks, users)
+      } else {
+        result.feedback = getFormatFeedBacks(copyFeedBacks, users)
       }
+
+      return result
 
     } catch ({response}) {
       if(response.status === 404) {

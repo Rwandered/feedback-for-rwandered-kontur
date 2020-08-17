@@ -68,12 +68,12 @@ describe("getFeedbackByProductViewData", function() {
     expect(message).to.equal("Такого продукта не существует");
   });
 
-  // it("*если передан флаг actualize, фильтрует отзывы пользователей, у которых уже есть более свежие отзывы", async () => {
-  //   const { feedback } = await getFeedbackByProductViewData("focus", true);
-  //
-  //   expect(feedback.length).to.equal(3);
-  //   expect(feedback[0].date).to.equal("2018-2-14");
-  //   expect(feedback[1].date).to.equal("2018-12-11");
-  //   expect(feedback[2].date).to.equal("2019-1-14");
-  // });
+  it("*если передан флаг actualize, фильтрует отзывы пользователей, у которых уже есть более свежие отзывы", async () => {
+    const { feedback } = await getFeedbackByProductViewData("focus", true);
+
+    expect(feedback.length).to.equal(3);
+    expect(feedback[0].date).to.equal("2018-2-14");
+    expect(feedback[1].date).to.equal("2018-12-11");
+    expect(feedback[2].date).to.equal("2019-1-14");
+  });
 });
