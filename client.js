@@ -1,46 +1,6 @@
 const { axios } = require("./fakeBackend/mock");
 
 
-const getFeedbackByProductViewData = async(product, actualize = true) => {
-    try {
-        const res =  await axios({
-          url: '/feedback',
-          params: {
-            product
-          },
-        })
-
-      for( let elem of  res.data.feedback) {
-        const users = await getUserById(elem.userId)
-        const { email, name } = users[0]
-        elem.user = `${name} (${email})`
-      }
-
-      if(checkEmptyFeedBack(res.data)) {
-        return {
-          message: 'Отзывов пока нет'
-        }
-      }
-
-
-      res.data.feedback
-        .sort( (a, b) => a.date - b.date)
-        .forEach( (elem) => {
-          elem.date = getDate(elem.date)
-        })
-
-      console.log('RESULT: ', res.data)
-      console.log('RESULT: ', res.data.length)
-
-      return res.data
-
-    } catch ({response}) {
-      if(response.status === 404) {
-        return response.data
-      }
-    }
-}
-
 const getUserById = async (userId) => {
   const res =  await axios({
     url: '/users',
@@ -62,5 +22,68 @@ const getDate = ( date ) => {
 }
 
 const checkEmptyFeedBack = ( {feedback} ) => feedback.length === 0 &&  true
+
+const getFormatUsers = (users) => {
+  return users
+    .flat()
+    .reduce( (acc, user) => {
+      const userInAcc = acc.find(elem => elem.id === user.id)
+
+      if(userInAcc) {
+        return acc
+      } else {
+        return [...acc, user]
+      }
+    }, [])
+}
+
+const getFeedbackByProductViewData = async(product, actualize = true) => {
+    try {
+      const getUserResults = []
+      const copyFeedBacks = []
+
+      const res =  await axios({
+        url: '/feedback',
+        params: {
+          product
+        },
+      })
+
+      if(checkEmptyFeedBack(res.data)) {
+        return {
+          message: 'Отзывов пока нет'
+        }
+      }
+
+      for( let elem of  res.data.feedback) {
+        const copyElem = {...elem}
+        copyFeedBacks.push(copyElem)
+        getUserResults.push(getUserById(copyElem.userId))
+      }
+
+      const usersR = await Promise.all(getUserResults) // array users
+      const users = getFormatUsers(usersR)
+
+      copyFeedBacks
+        .sort( (a, b) => a.date - b.date)
+        .forEach( (feedBack) => {
+          feedBack.date = getDate(feedBack.date)
+          const { email, name } = users.find( user => user.id === feedBack.userId)
+          feedBack.user = `${name} (${email})`
+        })
+
+      console.log('RESULT: ', copyFeedBacks)
+      console.log('RES.DATA: ', res.data)
+
+      return {
+        feedback: copyFeedBacks
+      }
+
+    } catch ({response}) {
+      if(response.status === 404) {
+        return response.data
+      }
+    }
+}
 
 module.exports = { getFeedbackByProductViewData };
